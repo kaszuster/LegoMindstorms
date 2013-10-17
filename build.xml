@@ -1,0 +1,130 @@
+<project name="org.lejos.example" default="uploadandrun Skynet">
+	<description>
+	</description>
+
+	<!-- set properties for this build -->
+	<property environment="env" />
+	<property file="build.properties" />
+	<property name="src" location="src" />
+	<property name="build" location="build" />
+	<property name="binary" value="${build}/Main.nxj" />
+	<property name="debug" value="${build}/Main.nxd" />
+	
+	<path id="lejos.pc">
+		<fileset dir="${nxj.home}/lib/pc">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+	<path id="lejos.nxt">
+		<fileset dir="${nxj.home}/lib/nxt">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+	
+	<condition property="d32Flag" value="-d32" else="-Dblank.dummy.arg=">
+		<and>
+			<os family="mac" />
+		</and>
+	</condition>
+
+	<!-- deletes generated files -->
+	<target name="clean" description="clean up all generated files">
+		<delete dir="${build}" />
+	</target>
+
+	<!-- build parts -->
+	<target name="uploadandrun Skynet" description="upload and run the binary">
+	    <antcall target="uploadandrun">
+		<param name="full.main.class" value="prj31.skynet.Main" />
+	    </antcall>
+	</target>
+	
+	<target name="uploadandrun Gun" description="upload and run the binary">
+	    <antcall target="uploadandrun">
+		<param name="full.main.class" value="prj31.gun.Main" />
+	    </antcall>
+	</target>
+	
+	<target name="uploadandrun Target" description="upload and run the binary">
+	    <antcall target="uploadandrun">
+		<param name="full.main.class" value="prj31.target.Main" />
+	    </antcall>
+	</target>
+
+	<target name="compile" depends="clean" description="compile the source ">
+		<!-- Compile the java code from ${src} to ${build}  -->
+		<mkdir dir="${build}" />
+		<javac srcdir="${src}" destdir="${build}" includeantruntime="false" verbose="false">
+			<bootclasspath refid="lejos.nxt" />
+			<!--
+				Without this, there are some JDK jars in the classpath.
+				Set verbose=true to check that the classpath is really clean.
+			-->
+    		<compilerarg value="-extdirs" />
+    		<compilerarg value="" />
+		</javac>
+	</target>
+
+	<target name="link" depends="compile" description="link the binary ">
+		<!-- Link the binary and create a signature file -->
+		<java classname="lejos.pc.tools.NXJLink" failonerror="true">
+			<classpath refid="lejos.pc" />
+			<arg value="--bootclasspath" />
+			<arg pathref="lejos.nxt" />
+			<arg value="--classpath" />
+			<arg path="${build}" />
+			<arg value="--writeorder" />
+			<arg value="LE" />
+			<arg value="-o" />
+			<arg file="${binary}" />
+			<arg value="-od" />
+			<arg file="${debug}" />
+			<arg value="-v" />
+			<arg value="${full.main.class}" />
+		</java>
+	</target>
+	
+	<target name="upload" depends="link" description="upload the binary">
+		<java classname="lejos.pc.tools.NXJUpload" fork="true" failonerror="true">
+			<jvmarg value="-Dnxj.home=${nxj.home}" />
+			<jvmarg value="${d32Flag}" />
+			<classpath refid="lejos.pc" />
+			<arg value="${binary}" />
+		</java>
+	</target>
+	
+	<target name="uploadandrun" depends="link" description="upload and run the binary">
+		<java classname="lejos.pc.tools.NXJUpload" fork="true" failonerror="true">
+			<jvmarg value="-Dnxj.home=${nxj.home}" />
+			<jvmarg value="${d32Flag}" />
+			<classpath refid="lejos.pc" />
+			<arg value="-r" />
+			<arg file="${binary}" />
+		</java>
+	</target>
+	
+	<!-- generate javadocs -->
+	<target name="docs" description="generate javadocs">
+		<delete dir="${docs}" />
+		
+    	<mkdir dir="${docs}" />
+		<javadoc
+			destdir="${docs}"
+			charset="utf-8"
+			locale="en_US"
+			author="true"
+			access="protected"
+			windowtitle="Project documentation"
+			verbose="false"
+		>
+			<classpath refid="lejos.nxt" />
+    		<arg value="-extdirs"/>
+			<arg value="-quiet"/>
+			
+			<packageset
+				dir="${src}"
+			/>
+		</javadoc>
+	</target>
+	
+</project>
